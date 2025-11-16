@@ -1,43 +1,85 @@
+import os
+
+import aiofiles
+import pdfplumber
 from docx import Document
-import PyPDF2
-import pytesseract
-from PIL import Image
 
 from app.service.llm_service import LLMService
 
 
 class DocumentAnalyzer:
-    def __init__(self, llm: LLMService, doc_repo, insight_repo):
+    def __init__(self, llm: LLMService, document_repository, insight_repository):
         self.llm = llm
-        self.doc_repo = doc_repo
-        self.insight_repo = insight_repo
+        self.document_repository = document_repository
+        self.insight_repository = insight_repository
 
-    async def extract_text(self, file_path, file_type):
-        if file_type == "pdf":
-            reader = PyPDF2.PdfReader(file_path)
-            return "\n".join([p.extract_text() for p in reader.pages])
+    async def _extract_from_pdf(self, file_path: str) -> str:
+        """Извлечение текста из PDF"""
+        try:
+            text = ""
+            async with aiofiles.tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = os.path.join(temp_dir, "temp.pdf")
+                async with aiofiles.open(file_path, 'rb') as source:
+                    async with aiofiles.open(temp_path, 'wb') as target:
+                        await target.write(await source.read())
 
-        if file_type == "docx":
-            doc = Document(file_path)
-            return "\n".join([p.text for p in doc.paragraphs])
+                with pdfplumber.open(temp_path) as pdf:
+                    for page in pdf.pages:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text += page_text + "\n"
 
-        if file_type in ["jpg", "jpeg", "png"]:
-            img = Image.open(file_path)
-            return pytesseract.image_to_string(img)
+            return text.strip()
+        except Exception as e:
+            raise Exception(f"Ошибка извлечения из PDF: {str(e)}")
 
-        return ""
+    async def _extract_from_docx(self, file_path: str) -> str:
+        """Извлечение текста из DOCX"""
+        try:
+            text = ""
+            async with aiofiles.tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = os.path.join(temp_dir, "temp.docx")
+                async with aiofiles.open(file_path, 'rb') as source:
+                    async with aiofiles.open(temp_path, 'wb') as target:
+                        await target.write(await source.read())
+
+
+                doc = Document(temp_path)
+                for paragraph in doc.paragraphs:
+                    text += paragraph.text + "\n"
+
+            return text.strip()
+        except Exception as e:
+            raise Exception(f"Ошибка извлечения из DOCX: {str(e)}")
+
+    async def extract_text(self, file_path: str, file_type: str) -> str:
+        """Извлечение текста из файла"""
+        if file_type == 'pdf':
+            return await self._extract_from_pdf(file_path)
+        elif file_type == 'docx':
+            return await self._extract_from_docx(file_path)
+        else:
+            raise ValueError(f"Unsupported file type: {file_type}")
 
     async def analyze(self, user_id, file_path, file_type, filename, size):
         text = await self.extract_text(file_path, file_type)
 
-        doc = await self.doc_repo.create(user_id, filename, file_type, text, size)
+        doc = await self.document_repository.create(user_id, filename, file_type, text, size)
 
+        # Анализируем через ИИ
         insights = await self.llm.generate_json(f"""
-            Проанализируй документ:
+            Проанализируй документ и верни JSON:
+            {{
+                "summary": "краткое содержание",
+                "risks": "выявленные риски", 
+                "recommendations": "рекомендации"
+            }}
+
+            Текст документа:
             {text[:1500]}
         """)
 
-        await self.insight_repo.create(
+        await self.insight_repository.create(
             doc.id,
             insights["summary"],
             insights["risks"],

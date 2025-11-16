@@ -50,7 +50,7 @@ def get_marketing_menu() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="Контент-план 30 дней", callback_data="mkt:plan"),
             ],
             [
-                InlineKeyboardButton(text="Бизнес-идеи", callback_data="biz:ideas")
+                InlineKeyboardButton(text="Бизнес-идеи", callback_data="mkt:ready_ideas")
             ]
         ]
     )
@@ -129,13 +129,14 @@ def conversation_buttons(conversations):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def get_profile_settings_buttons() -> InlineKeyboardMarkup:
-    """Кнопки для редактирования настроек профиля"""
+# app/keyboards/menus.py
+def get_profile_settings_buttons():
+    """Клавиатура настроек профиля"""
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✏️ Редактировать личные данные", callback_data="settings:edit_personal")],
-            [InlineKeyboardButton(text="💼 Редактировать бизнес-профиль", callback_data="settings:edit_business")],
-            [InlineKeyboardButton(text="🔔 Уведомления", callback_data="settings:toggle_notifications")],
-            [InlineKeyboardButton(text="⬅️ Назад в профиль", callback_data="profile:menu")]
+            [InlineKeyboardButton(text="✏️ Редактировать личные данные", callback_data="profile:edit_personal")],
+            [InlineKeyboardButton(text="💼 Ваш бизнес-профиль", callback_data="profile:view_business")],
+            [InlineKeyboardButton(text="🔔 Настройки уведомлений", callback_data="profile:edit_notifications")],
+            [InlineKeyboardButton(text="⬅️ Назад в профиль", callback_data="profile:back")]
         ]
     )

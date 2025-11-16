@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, BigInteger, String, Text, DateTime,
-    Boolean, JSON, ForeignKey, TIMESTAMP
+    Boolean, JSON, ForeignKey, TIMESTAMP, func, Float
 )
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
@@ -44,6 +44,9 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    products = relationship("Product", back_populates="user", cascade="all, delete-orphan")
+    sales = relationship("Sale", back_populates="user", cascade="all, delete-orphan")
+    stock_movements = relationship("StockMovement", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User id={self.id} username='{self.username}'>"
@@ -151,7 +154,7 @@ class Document(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User")
-    insights = relationship("DocumentInsight", back_populates="document", cascade="all, delete-orphan")
+    insights = relationship("Insight", back_populates="document", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Document id={self.id} file='{self.filename}' user_id={self.user_id}>"
@@ -161,19 +164,16 @@ class Document(Base):
         return f"Документ: {self.filename} ({self.file_type}, {size})"
 
 
-class DocumentInsight(Base):
+class Insight(Base):
     __tablename__ = "document_insights"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    document_id = Column(Integer, ForeignKey("documents.id", ondelete="CASCADE"))
-
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey("documents.id"))
     summary = Column(Text)
-    risks = Column(JSON)
-    recommendations = Column(JSON)
-
-    llm_raw_response = Column(Text)
-
-    created_at = Column(DateTime, default=datetime.utcnow)
+    risks = Column(Text)
+    recommendations = Column(Text)
+    raw_data = Column(Text)  # сырой JSON от ИИ
+    created_at = Column(DateTime, default=func.now())
 
     document = relationship("Document", back_populates="insights")
 
@@ -227,3 +227,62 @@ class MarketingIdeas(Base):
 
     def __str__(self):
         return f"Маркетинговая идея для пользователя {self.user_id}: {self.idea_title}"
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    category = Column(String(100), default="Разное")
+    purchase_price = Column(Float, default=0.0)
+    selling_price = Column(Float, nullable=False)
+    stock_quantity = Column(Integer, default=0)
+    min_stock = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Связи
+    sales = relationship("Sale", back_populates="product", cascade="all, delete-orphan")
+    stock_movements = relationship("StockMovement", back_populates="product", cascade="all, delete-orphan")
+    user = relationship("User")
+    def __repr__(self):
+        return f"<Product id={self.id} name='{self.name}'>"
+
+
+class Sale(Base):
+    __tablename__ = "sales"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"))
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    sale_date = Column(DateTime, default=datetime.utcnow)
+    customer_info = Column(String(255), nullable=True)
+    payment_method = Column(String(50), default="cash")
+
+    # Связи
+    product = relationship("Product", back_populates="sales")
+    user = relationship("User")
+    def __repr__(self):
+        return f"<Sale id={self.id} product_id={self.product_id} amount={self.total_amount}>"
+
+
+class StockMovement(Base):
+    __tablename__ = "stock_movements"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"))
+    user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String(20), nullable=False)  # incoming, outgoing, adjustment
+    quantity = Column(Integer, nullable=False)
+    reason = Column(String(255))
+    date = Column(DateTime, default=datetime.utcnow)
+
+    # Связи
+    product = relationship("Product", back_populates="stock_movements")
+    user = relationship("User")
+    def __repr__(self):
+        return f"<StockMovement id={self.id} product_id={self.product_id} type={self.type}>"

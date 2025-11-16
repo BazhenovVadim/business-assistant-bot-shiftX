@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import select, update, func
@@ -27,18 +28,22 @@ class UserRepository:
     async def update_profile(self, user_id: int, **kwargs) -> Optional[User]:
         """Обновить профиль пользователя"""
         user = await self.find_by_id(user_id)
-        if user:
-            for key, value in kwargs.items():
-                if hasattr(user, key):
-                    setattr(user, key, value)
-            await self.session.commit()
+        if not user:
+            return None
+
+        for key, value in kwargs.items():
+            if hasattr(user, key) and value is not None:
+                setattr(user, key, value)
+
+        user.last_active = datetime.now()
+        await self.session.commit()
         return user
 
-    async def update_last_active(self, user_id: int) -> None:
+
+
+    async def update_last_active(self, user_id: int):
         """Обновить время последней активности"""
-        await self.session.execute(
-            update(User)
-            .where(User.id == user_id)
-            .values(last_active=func.now())
-        )
-        await self.session.commit()
+        user = await self.find_by_id(user_id)
+        if user:
+            user.last_active = datetime.now()
+            await self.session.commit()

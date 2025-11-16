@@ -1,11 +1,17 @@
 from .db import Database
-from .models import Base, User, Conversation, BusinessData, Template, QuickAction
+from .models import (Base, User, Conversation, BusinessData, Template, QuickAction, Document,
+                     Insight, Product, Sale, StockMovement)
 from .repository import (
     UserRepository,
     ConversationRepository,
     BusinessDataRepository,
     TemplateRepository,
-    QuickActionRepository
+    QuickActionRepository,
+    DocumentRepository,
+    InsightRepository,
+    ProductRepository,
+    SaleRepository,
+    StockMovementRepository
 )
 from .unit_of_work import UnitOfWork
 
@@ -17,10 +23,20 @@ __all__ = [
     'BusinessData',
     'Template',
     'QuickAction',
+    'Document',
+    'Insight',
+    'Product',
+    'Sale',
+    'StockMovement',
     'UserRepository',
     'ConversationRepository',
     'BusinessDataRepository',
     'TemplateRepository',
     'QuickActionRepository',
-    'UnitOfWork'
+    'DocumentRepository',
+    'InsightRepository',
+    'UnitOfWork',
+    'ProductRepository',
+    'SaleRepository',
+    'StockMovementRepository'
 ]

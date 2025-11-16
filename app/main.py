@@ -1,81 +1,21 @@
 import asyncio
 import logging
 import os
-from datetime import datetime
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
-from aiogram.fsm.context import FSMContext
+
 from aiogram.fsm.state import State, StatesGroup
 from dotenv import load_dotenv
 
+from app.ServiceMiddleware import ServiceMiddleware
 from app.dispatcher import BotDispatcher
-
-
-from app.keyboards.menus import get_main_menu, get_quick_actions_menu
 from app.database.db import Database
-from app.service import UserService, ConversationService, BusinessDataService, TemplateService, AnalyticService
-
-# Настройка логирования
 
 
-
-# assistant = BusinessAssistant()  подключить ии анализ
-
-
-# States для сложных операций
 class BusinessStates(StatesGroup):
     waiting_for_data = State()
     waiting_for_document = State()
     waiting_for_marketing = State()
 
-
-
-# ========== УНИВЕРСАЛЬНЫЙ ОБРАБОТЧИК ==========
-
-# @dp.message(F.text)
-# async def handle_any_text(message: Message):
-#     """Обработка любых текстовых запросов через ИИ"""
-#     user_text = message.text
-#
-#     # Короткие быстрые ответы
-#     quick_replies = {
-#         "привет": "👋 Привет! Чем могу помочь вашему бизнесу?",
-#         "спасибо": "🙏 Всегда рад помочь! Обращайтесь!",
-#         "как дела": "🤖 Работаю над помощью вашему бизнесу! Что нужно сделать?",
-#     }
-#
-#     if user_text.lower() in quick_replies:
-#         await message.answer(quick_replies[user_text.lower()])
-#         return
-#
-#     # Сложные запросы - к ИИ
-#     await message.answer("🤔 Думаю над ответом...")
-#
-#     try:
-#         # Получаем ответ от ИИ-помощника
-#         ai_response = await assistant.process_business_request(
-#             user_text,
-#             message.from_user.id
-#         )
-#         await message.answer(ai_response)
-#
-#         # Сохраняем в историю
-#         await db.save_conversation(
-#             user_id=message.from_user.id,
-#             user_message=user_text,
-#             bot_response=ai_response
-#         )
-#
-#     except Exception as e:
-#         logger.error(f"AI error: {e}")
-#         await message.answer(
-#             "❌ Произошла ошибка. Попробуйте переформулировать запрос "
-#             "или использовать кнопки меню."
-#         )
-
-
-# ========== ЗАПУСК БОТА ==========
 
 async def main():
     load_dotenv()
@@ -89,14 +29,11 @@ async def main():
 
     bot_dispatcher = BotDispatcher()
     dp = bot_dispatcher.get_dispatcher()
+    dp.update.middleware(ServiceMiddleware())
 
     db = Database()
-    # Инициализация БД
     await db.init()
-    dp["user_service"] = UserService(db)
-    dp["conversation_service"] = ConversationService(db)
-    dp["analytic_service"] = AnalyticService(db)
-    # Запуск бота
+
     await dp.start_polling(bot)
 
 

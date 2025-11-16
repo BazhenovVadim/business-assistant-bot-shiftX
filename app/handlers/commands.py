@@ -1,7 +1,8 @@
 from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
-from aiogram.fsm.context import FSMContext
+from fastapi import Depends
+
 from app.keyboards.menus import (
     get_main_menu,
     get_quick_actions_menu,
@@ -11,14 +12,20 @@ from app.keyboards.menus import (
     get_analytics_menu,
     get_profile_menu
 )
-
-from app.keyboards.menus import get_main_menu, get_quick_actions_menu
+from app.dependencies import (
+    get_user_service,
+    get_conversation_service
+)
+from app.service import UserService, ConversationService
 
 router = Router()
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, user_service):
+async def cmd_start(
+    message: Message,
+    user_service: UserService = Depends(get_user_service)
+):
     """Обработчик команды /start"""
     user = await user_service.get_or_create_user(
         user_id=message.from_user.id,
@@ -64,7 +71,10 @@ async def cmd_help(message: Message):
 
 
 @router.message(Command("profile"))
-async def cmd_profile(message: Message, user_service):
+async def cmd_profile(
+    message: Message,
+    user_service: UserService = Depends(get_user_service)
+):
     """Обработчик команды /profile"""
     user_id = message.from_user.id
     stats = await user_service.get_user_stats(user_id)
@@ -81,7 +91,10 @@ async def cmd_profile(message: Message, user_service):
 
 
 @router.message(Command("history"))
-async def cmd_history(message: Message, conversation_service):
+async def cmd_history(
+    message: Message,
+    conversation_service: ConversationService = Depends(get_conversation_service)
+):
     """Обработчик команды /history - история консультаций"""
     user_id = message.from_user.id
     conversations = await conversation_service.get_user_conversations(user_id, limit=5)

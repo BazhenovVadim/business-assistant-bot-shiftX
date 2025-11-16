@@ -5,7 +5,11 @@ from .repository.ConversationRepository import ConversationRepository
 from .repository.BusinessDataRepository import BusinessDataRepository
 from .repository.TemplateRepository import TemplateRepository
 from .repository.QuickActionRepository import QuickActionRepository
-
+from .repository.InsightRepository import InsightRepository
+from .repository.DocumentRepository import DocumentRepository
+from .repository.ProductRepository import ProductRepository
+from .repository.SaleRepository import SaleRepository
+from .repository.StockMovementRepository import StockMovementRepository
 
 class UnitOfWork:
     def __init__(self, session_factory):
@@ -20,6 +24,11 @@ class UnitOfWork:
         self.business_data = BusinessDataRepository(self.session)
         self.templates = TemplateRepository(self.session)
         self.quick_actions = QuickActionRepository(self.session)
+        self.documents = DocumentRepository(self.session)
+        self.insights = InsightRepository(self.session)
+        self.products = ProductRepository(self.session)
+        self.sales = SaleRepository(self.session)
+        self.stock_movements = StockMovementRepository(self.session)
 
         return self
 

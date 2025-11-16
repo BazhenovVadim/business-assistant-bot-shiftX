@@ -1,5 +1,11 @@
 from aiogram import Router, F
+from aiogram.filters import StateFilter
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from fastapi import Depends
+
+from app.dependencies import get_user_service
+from app.service import UserService
 
 router = Router()
 
@@ -100,7 +106,44 @@ async def handle_legal_request(message: Message, conversation_service):
         legal_advice,
         "legal"
     )
+@router.message(F.text, StateFilter("waiting_personal_data"))
+async def process_personal_data(
+        message: Message,
+        state: FSMContext,
+        user_service: UserService = Depends(get_user_service)
+):
+    """Обработка и сохранение личных данных"""
+    try:
+        parts = message.text.strip().split()
 
+        if len(parts) < 2:
+            await message.answer(
+                "❌ Пожалуйста, введите Имя и Фамилию через пробел\n"
+                "Пример: <code>Иван Иванов</code>",
+                parse_mode="HTML"
+            )
+            return
+
+        first_name, last_name = parts[0], ' '.join(parts[1:])
+
+        # ✅ СОХРАНЯЕМ данные в базу
+        await user_service.update_user_profile(
+            message.from_user.id,
+            first_name=first_name,
+            last_name=last_name
+        )
+
+        await message.answer(
+            f"✅ Личные данные обновлены!\n"
+            f"Теперь вы: <b>{first_name} {last_name}</b>",
+            parse_mode="HTML"
+        )
+
+    except Exception as e:
+        await message.answer(f"❌ Ошибка при обновлении данных: {str(e)}")
+
+    finally:
+        await state.clear()
 
 @router.message(F.text)
 async def handle_any_text(message: Message, conversation_service):
@@ -136,3 +179,5 @@ async def handle_any_text(message: Message, conversation_service):
         response,
         "general"
     )
+
+
