@@ -1,4 +1,8 @@
+from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
+
+from sqlalchemy import select
+
 from app.database.unit_of_work import UnitOfWork
 from app.database.models import Conversation
 
@@ -7,43 +11,51 @@ class ConversationService:
     def __init__(self, db):
         self.db = db
 
-    async def save_conversation(self, user_id: int, user_message: str, bot_response: str,
-                                category: str = None) -> Conversation:
-        """Сохранить диалог"""
-        async with self.db.get_uow() as uow:
-            conversation = Conversation(
-                user_id=user_id,
-                user_message=user_message,
-                bot_response=bot_response,
-                category=category,
-                message_length=len(user_message)
-            )
-            return await uow.conversations.save(conversation)
+    async def add_message(self, user_id: int, user_text: str, bot_text: str, category: str = "general") -> Conversation:
+        """Добавляем сообщение в активный диалог (12 часов) через UoW."""
+        now = datetime.utcnow()
+        user_line = f"USER: {user_text}"
+        bot_line = f"BOT: {bot_text}"
 
-    async def get_user_conversations(self, user_id: int, limit: int = 10) -> List[Conversation]:
-        """Получить историю диалогов пользователя"""
+        async with self.db.get_uow() as uow:
+            # --- ищем последний активный диалог ---
+            twelve_hours_ago = now - timedelta(hours=12)
+            result = await uow.conversations.session.execute(
+                select(Conversation)
+                .where(
+                    Conversation.user_id == user_id,
+                    Conversation.last_message_at >= twelve_hours_ago
+                )
+                .order_by(Conversation.id.desc())
+                .limit(1)
+            )
+            conv = result.scalar_one_or_none()
+
+            if conv:
+                # продолжаем существующий диалог
+                conv.user_message += f"\n\n{user_line}"
+                conv.bot_response += f"\n\n{bot_line}"
+                conv.last_message_at = now
+            else:
+                # создаём новый диалог
+                conv = Conversation(
+                    user_id=user_id,
+                    category=category,
+                    user_message=user_line,
+                    bot_response=bot_line,
+                    message_length=len(user_text),
+                    response_time_ms=0,
+                    created_at=now,
+                    last_message_at=now,
+                )
+                await uow.conversations.save(conv)
+
+        return conv
+    async def get_user_conversations(self, user_id: int, limit: int = 10):
         async with self.db.get_uow() as uow:
             return await uow.conversations.find_by_user_id(user_id, limit)
 
-    async def get_conversations_by_category(self, user_id: int, category: str) -> List[Conversation]:
-        """Получить диалоги по категории"""
+    async def get_conversation(self, conversation_id: int):
         async with self.db.get_uow() as uow:
-            return await uow.conversations.find_by_category(user_id, category)
+            return await uow.conversations.find_by_id(conversation_id)
 
-    async def get_analytics(self, user_id: int) -> Dict[str, Any]:
-        """Аналитика по диалогам пользователя"""
-        async with self.db.get_uow() as uow:
-            total_conversations = await uow.conversations.count_by_user(user_id)
-
-            # Распределение по категориям
-            conversations = await uow.conversations.find_by_user_id(user_id, limit=100)
-            category_stats = {}
-            for conv in conversations:
-                category = conv.category or "general"
-                category_stats[category] = category_stats.get(category, 0) + 1
-
-            return {
-                "total_conversations": total_conversations,
-                "category_distribution": category_stats,
-                "most_active_category": max(category_stats.items(), key=lambda x: x[1]) if category_stats else None
-            }

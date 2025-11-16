@@ -1,4 +1,4 @@
-from .database import Database
+from .db import Database
 from .models import Base, User, Conversation, BusinessData, Template, QuickAction
 from .repository import (
     UserRepository,

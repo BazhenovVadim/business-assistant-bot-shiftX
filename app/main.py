@@ -13,7 +13,7 @@ from app.dispatcher import BotDispatcher
 
 
 from app.keyboards.menus import get_main_menu, get_quick_actions_menu
-from app.database.database import Database
+from app.database.db import Database
 from app.service import UserService, ConversationService, BusinessDataService, TemplateService, AnalyticService
 
 # Настройка логирования
@@ -95,6 +95,7 @@ async def main():
     await db.init()
     dp["user_service"] = UserService(db)
     dp["conversation_service"] = ConversationService(db)
+    dp["analytic_service"] = AnalyticService(db)
     # Запуск бота
     await dp.start_polling(bot)
 

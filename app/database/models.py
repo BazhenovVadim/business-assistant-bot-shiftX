@@ -45,6 +45,12 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    def __repr__(self):
+        return f"<User id={self.id} username='{self.username}'>"
+
+    def __str__(self):
+        return f"Пользователь {self.username or self.id} ({self.first_name or ''} {self.last_name or ''})"
+
 
 class Conversation(Base):
     __tablename__ = "conversations"
@@ -57,10 +63,18 @@ class Conversation(Base):
     bot_response = Column(Text)
     message_length = Column(Integer)
     response_time_ms = Column(Integer)
+    last_message_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="conversations")
+
+    def __repr__(self):
+        return f"<Conversation id={self.id} user_id={self.user_id} category='{self.category}'>"
+
+    def __str__(self):
+        created = self.created_at.strftime("%Y-%m-%d %H:%M")
+        return f"Диалог #{self.id}: [{self.category}] — {created}"
 
 
 class BusinessData(Base):
@@ -79,6 +93,12 @@ class BusinessData(Base):
 
     user = relationship("User", back_populates="business_data")
 
+    def __repr__(self):
+        return f"<BusinessData id={self.id} user_id={self.user_id} type='{self.data_type}'>"
+
+    def __str__(self):
+        return f"Бизнес-данные ({self.data_type}, период: {self.period})"
+
 
 class Template(Base):
     __tablename__ = "templates"
@@ -90,6 +110,12 @@ class Template(Base):
     suitable_for = Column(JSON)
     usage_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Template id={self.id} name='{self.name}'>"
+
+    def __str__(self):
+        return f"Шаблон: {self.name} [{self.category}]"
 
 
 class QuickAction(Base):
@@ -104,6 +130,13 @@ class QuickAction(Base):
 
     user = relationship("User", back_populates="quick_actions")
 
+    def __repr__(self):
+        return f"<QuickAction id={self.id} user_id={self.user_id} type='{self.action_type}'>"
+
+    def __str__(self):
+        return f"Быстрое действие: {self.action_type}"
+
+
 class Document(Base):
     __tablename__ = "documents"
 
@@ -112,13 +145,20 @@ class Document(Base):
 
     filename = Column(String(255))
     file_type = Column(String(20))  # pdf, docx, jpg...
-    content_text = Column(Text)     # распознанный/вытащенный текст
+    content_text = Column(Text)  # распознанный/вытащенный текст
     size_bytes = Column(Integer)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User")
     insights = relationship("DocumentInsight", back_populates="document", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Document id={self.id} file='{self.filename}' user_id={self.user_id}>"
+
+    def __str__(self):
+        size = f"{self.size_bytes / 1024:.1f} KB" if self.size_bytes else "?"
+        return f"Документ: {self.filename} ({self.file_type}, {size})"
 
 
 class DocumentInsight(Base):
@@ -137,6 +177,12 @@ class DocumentInsight(Base):
 
     document = relationship("Document", back_populates="insights")
 
+    def __repr__(self):
+        return f"<DocumentInsight id={self.id} document_id={self.document_id}>"
+
+    def __str__(self):
+        return f"Инсайты по документу #{self.document_id}"
+
 
 class AgentLog(Base):
     __tablename__ = "agent_logs"
@@ -144,13 +190,20 @@ class AgentLog(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     user_id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"))
-    agent = Column(String(50))       # legal, marketing, risk, editor, finance
+    agent = Column(String(50))  # legal, marketing, risk, editor, finance
     input_text = Column(Text)
     output_text = Column(Text)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User")
+
+    def __repr__(self):
+        return f"<AgentLog id={self.id} user_id={self.user_id} agent='{self.agent}'>"
+
+    def __str__(self):
+        return f"Лог агента [{self.agent}] для пользователя {self.user_id}"
+
 
 class MarketingIdeas(Base):
     __tablename__ = "marketing_ideas"
@@ -168,3 +221,9 @@ class MarketingIdeas(Base):
     idea_examples = Column(Text)
 
     created_at = Column(TIMESTAMP)
+
+    def __repr__(self):
+        return f"<MarketingIdeas id={self.id} user_id={self.user_id}>"
+
+    def __str__(self):
+        return f"Маркетинговая идея для пользователя {self.user_id}: {self.idea_title}"

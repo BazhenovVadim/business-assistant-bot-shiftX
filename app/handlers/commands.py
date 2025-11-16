@@ -8,7 +8,8 @@ from app.keyboards.menus import (
     get_intelligence_menu,
     get_marketing_menu,
     get_documents_menu,
-    get_analytics_menu
+    get_analytics_menu,
+    get_profile_menu
 )
 
 from app.keyboards.menus import get_main_menu, get_quick_actions_menu
@@ -136,3 +137,8 @@ async def open_quick_section(message: Message):
 @router.message(F.text == "Поддержка")
 async def open_support_section(message: Message):
     await message.answer("Чем могу помочь?", reply_markup=None)
+
+
+@router.message(F.text == "Мой профиль")
+async def open_profile_section(message: Message):
+    await message.answer("Профиль", reply_markup=get_profile_menu())

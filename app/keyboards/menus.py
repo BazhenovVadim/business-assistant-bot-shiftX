@@ -16,6 +16,9 @@ def get_main_menu() -> ReplyKeyboardMarkup:
                 KeyboardButton(text=" Быстрое"),
                 KeyboardButton(text=" Поддержка")
             ],
+            [
+                KeyboardButton(text="Мой профиль")
+            ]
         ],
         resize_keyboard=True,
         input_field_placeholder="Выберите раздел…"
@@ -95,4 +98,44 @@ def get_quick_actions_menu() -> InlineKeyboardMarkup:
         ]
     )
 
+def get_profile_menu() -> InlineKeyboardMarkup:
+    """Меню для профиля"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="📝 История диалогов", callback_data="profile:history"),
+                InlineKeyboardButton(text="📊 Аналитика", callback_data="profile:analytics"),
+            ],
+            [
+                InlineKeyboardButton(text="⚙️ Настройки профиля", callback_data="profile:settings"),
+                InlineKeyboardButton(text="🔄 Обновить", callback_data="profile:refresh"),
+            ]
+        ]
+    )
 
+def conversation_buttons(conversations):
+    """
+    Генерируем InlineKeyboardMarkup для списка диалогов.
+    Каждая кнопка открывает полный диалог.
+    """
+    buttons = []
+    for conv in conversations:
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"Открыть диалог #{conv.id}",
+                callback_data=f"open_dialog:{conv.id}"
+            )
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_profile_settings_buttons() -> InlineKeyboardMarkup:
+    """Кнопки для редактирования настроек профиля"""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✏️ Редактировать личные данные", callback_data="settings:edit_personal")],
+            [InlineKeyboardButton(text="💼 Редактировать бизнес-профиль", callback_data="settings:edit_business")],
+            [InlineKeyboardButton(text="🔔 Уведомления", callback_data="settings:toggle_notifications")],
+            [InlineKeyboardButton(text="⬅️ Назад в профиль", callback_data="profile:menu")]
+        ]
+    )
