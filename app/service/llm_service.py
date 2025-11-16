@@ -21,7 +21,11 @@ class LLMService:
         result = await self.generate(prompt)
         # В реальном LLM здесь может быть парсинг JSON
         return {
-            "summary": result["title"],
-            "risks": ["Нет явных рисков"],  # заглушка
-            "recommendations": result["examples"]
+            "document_type": result.get("document_type", "документ"),
+            "title": result.get("title", "Без названия"),
+            "content": result.get("content",
+                                  result.get("text", result.get("description", "Содержание не сгенерировано"))),
+            "key_points": result.get("key_points", result.get("points", [])),
+            "risks": result.get("risks", "Риски не выявлены"),
+            "recommendations": result.get("recommendations", result.get("advice", "Рекомендации отсутствуют"))
         }

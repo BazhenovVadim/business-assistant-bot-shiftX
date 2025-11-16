@@ -8,7 +8,7 @@ from app.database.repository import (
     DocumentRepository,
     InsightRepository
 )
-from app.service import WarehouseService
+from app.service import WarehouseService, MarketingService
 from app.service.user_service import UserService
 from app.service.conversation_service import ConversationService
 from app.service.analytic_service import AnalyticService
@@ -65,9 +65,10 @@ async def get_warehouse_service(db: Database = Depends(get_db)) -> WarehouseServ
     return WarehouseService(db)
 
 
+async def get_marketing_service(db: Database = Depends(get_db)) -> MarketingService:
+    return MarketingService(db)
+
+
 async def get_document_service(
-        llm_service: LLMService = Depends(get_llm_service),
-        document_repository: DocumentRepository = Depends(get_document_repository()),
-        insight_repository: InsightRepository = Depends(get_insight_repository())
-) -> DocumentAnalyzer:
-    return DocumentAnalyzer(llm_service, document_repository, insight_repository)
+        db: Database = Depends(get_db)) -> DocumentAnalyzer:
+    return DocumentAnalyzer(db)

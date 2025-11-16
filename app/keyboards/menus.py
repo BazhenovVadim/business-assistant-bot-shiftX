@@ -129,7 +129,6 @@ def conversation_buttons(conversations):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-# app/keyboards/menus.py
 def get_profile_settings_buttons():
     """Клавиатура настроек профиля"""
     return InlineKeyboardMarkup(
@@ -138,5 +137,64 @@ def get_profile_settings_buttons():
             [InlineKeyboardButton(text="💼 Ваш бизнес-профиль", callback_data="profile:view_business")],
             [InlineKeyboardButton(text="🔔 Настройки уведомлений", callback_data="profile:edit_notifications")],
             [InlineKeyboardButton(text="⬅️ Назад в профиль", callback_data="profile:back")]
+        ]
+    )
+
+def get_marketing_main_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🎯 Генератор идей", callback_data="mkt:ideas"),
+                InlineKeyboardButton(text="✍️ Генератор постов", callback_data="mkt:posts"),
+            ],
+            [
+                InlineKeyboardButton(text="🗓️ Контент-план", callback_data="mkt:plan"),
+                InlineKeyboardButton(text="💡 Бизнес-идеи", callback_data="mkt:business_ideas"),
+            ]
+        ]
+    )
+
+def get_platforms_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Instagram", callback_data="platform:instagram"),
+                InlineKeyboardButton(text="Telegram", callback_data="platform:telegram"),
+            ],
+            [
+                InlineKeyboardButton(text="VK", callback_data="platform:vk"),
+                InlineKeyboardButton(text="YouTube", callback_data="platform:youtube"),
+            ],
+            [
+                InlineKeyboardButton(text="Другое", callback_data="platform:other"),
+            ]
+        ]
+    )
+
+def get_post_styles_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🤝 Профессиональный", callback_data="style:professional"),
+                InlineKeyboardButton(text="😊 Дружеский", callback_data="style:friendly"),
+            ],
+            [
+                InlineKeyboardButton(text="🔥 Продающий", callback_data="style:sales"),
+                InlineKeyboardButton(text="🎭 Креативный", callback_data="style:creative"),
+            ]
+        ]
+    )
+
+def get_content_themes_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🎯 Образовательный", callback_data="theme:educational"),
+                InlineKeyboardButton(text="💼 Продажи", callback_data="theme:sales"),
+            ],
+            [
+                InlineKeyboardButton(text="👥 Сообщество", callback_data="theme:community"),
+                InlineKeyboardButton(text="🌟 Бренд", callback_data="theme:brand"),
+            ]
         ]
     )

@@ -6,6 +6,7 @@ from .analytic_service import AnalyticService
 from .llm_service import LLMService
 from .document_analyzer import DocumentAnalyzer
 from .warehouse_service import WarehouseService
+from .marketing_idea_service import MarketingService
 
 __all__ = [
     'LLMService',
@@ -15,11 +16,13 @@ __all__ = [
     'TemplateService',
     'AnalyticService',
     'WarehouseService',
+    'MarketingService',
     'llm_service',
     'user_service',
     'conversation_service',
     'business_data_service',
     'template_service',
     'analytic_service',
-    'warehouse_service'
+    'warehouse_service',
+    'marketing_idea_service'
 ]

@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .repository.MarketingIdeaRepository import MarketingIdeaRepository
 from .repository.UserRepository import UserRepository
 from .repository.ConversationRepository import ConversationRepository
 from .repository.BusinessDataRepository import BusinessDataRepository
@@ -29,6 +30,7 @@ class UnitOfWork:
         self.products = ProductRepository(self.session)
         self.sales = SaleRepository(self.session)
         self.stock_movements = StockMovementRepository(self.session)
+        self.marketing_ideas = MarketingIdeaRepository(self.session)
 
         return self
 

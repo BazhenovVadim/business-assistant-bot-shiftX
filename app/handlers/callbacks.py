@@ -4,6 +4,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from fastapi import Depends
 
 from app.database.db import logger
+from app.handlers.states import States
 from app.keyboards.menus import conversation_buttons, get_profile_settings_buttons, get_analytics_menu
 from app.dependencies import (
     get_user_service,
@@ -44,39 +45,73 @@ async def ai_general(call: CallbackQuery):
 
 # --------- Marketing ----------
 @router.callback_query(F.data == "mkt:ideas")
-async def marketing_ideas(call: CallbackQuery):
-    await call.message.answer("📣 Идеи маркетинга. Введите нишу.")
+async def start_marketing_ideas(call: CallbackQuery, state: FSMContext):
+    await call.message.answer(
+        "🎯 <b>Генератор маркетинговых идей</b>\n\n"
+        "📝 Введите вашу нишу (чем занимаетесь):",
+        reply_markup=None
+    )
+    await state.set_state(States.waiting_niche)
     await call.answer()
 
 
 @router.callback_query(F.data == "mkt:posts")
-async def marketing_posts(call: CallbackQuery):
-    await call.message.answer("✍️ Тема поста?")
+async def start_post_generator(call: CallbackQuery, state: FSMContext):
+    await call.message.answer(
+        "✍️ <b>Генератор постов</b>\n\n"
+        "📝 О чем будет пост?",
+        reply_markup=None
+    )
+    await state.set_state(States.waiting_post_topic)
     await call.answer()
 
 
 @router.callback_query(F.data == "mkt:plan")
-async def marketing_plan(call: CallbackQuery):
-    await call.message.answer("🗓 Создаю контент-план. Опишите бизнес.")
+async def start_content_plan(call: CallbackQuery, state: FSMContext):
+    await call.message.answer(
+        "🗓️ <b>Контент-план на 30 дней</b>\n\n"
+        "📝 Опишите ваш бизнес кратко:",
+        reply_markup=None
+    )
+    await state.set_state(States.waiting_business_description)
     await call.answer()
 
-@router.callback_query(F.data == "mkt:ready_ideas")
-async def marketing_ready_ideas(call: CallbackQuery):
-    await call.message.answer("Покупаем яйца по 130, отвариваем, продаем яйца по 130, навар себе")
+
+@router.callback_query(F.data == "mkt:business_ideas")
+async def generate_business_ideas(call: CallbackQuery, state: FSMContext):
+    await call.message.answer(
+        "💡 Генератор бизнес-идей\n\n"
+        "🎯 В чем вы разбираетесь? Какие у вас интересы?",
+        reply_markup=None
+    )
+    await state.set_state(States.waiting_niche)
     await call.answer()
 
 
 # --------- Documents ----------
 @router.callback_query(F.data == "doc:contract")
-async def doc_contract(call: CallbackQuery):
-    await call.message.answer("📄 Создание договора. Введите детали.")
+async def start_contract_creation(call: CallbackQuery, state: FSMContext):
+    await call.message.answer(
+        "📄 <b>Создание договора</b>\n\n"
+        "Опишите детали договора:\n"
+        "• Стороны договора\n• Предмет договора\n• Сроки\n• Условия оплаты\n• Особые условия",
+        reply_markup=None
+    )
+    await state.set_state(States.waiting_contract_details)
     await call.answer()
 
 
 @router.callback_query(F.data == "doc:act")
-async def doc_act(call: CallbackQuery):
-    await call.message.answer("🧾 Создание акта. Введите данные.")
+async def start_act_creation(call: CallbackQuery, state: FSMContext):
+    await call.message.answer(
+        "🧾 <b>Создание акта</b>\n\n"
+        "Введите данные для акта:\n"
+        "• Наименование работ/услуг\n• Стоимость\n• Сроки выполнения\n• Участники",
+        reply_markup=None
+    )
+    await state.set_state(States.waiting_act_data)
     await call.answer()
+
 
 
 @router.callback_query(F.data == "doc:analyze")
@@ -86,10 +121,14 @@ async def doc_analyze(call: CallbackQuery):
 
 
 @router.callback_query(F.data == "doc:check")
-async def doc_check(call: CallbackQuery):
-    await call.message.answer("📑 Загрузите документ для проверки.")
+async def start_document_check(call: CallbackQuery, state: FSMContext):
+    await call.message.answer(
+        "📑 <b>Проверка документа</b>\n\n"
+        "Введите текст документа для проверки на ошибки и риски:",
+        reply_markup=None
+    )
+    await state.set_state(States.waiting_document_text)
     await call.answer()
-
 
 # --------- Analytics ----------
 @router.callback_query(F.data == "an:sales")
@@ -203,8 +242,8 @@ async def handle_financial_overview(callback: CallbackQuery,
 # --------- Profile ----------
 @router.callback_query(F.data == "profile:history")
 async def profile_history(
-    call: CallbackQuery,
-    conversation_service: ConversationService = Depends(get_conversation_service)
+        call: CallbackQuery,
+        conversation_service: ConversationService = Depends(get_conversation_service)
 ):
     """
     Обработчик истории сообщений
@@ -235,8 +274,8 @@ async def profile_history(
 
 @router.callback_query(F.data == "profile:analytics")
 async def profile_analytics(
-    call: CallbackQuery,
-    analytic_service: AnalyticService = Depends(get_analytic_service)
+        call: CallbackQuery,
+        analytic_service: AnalyticService = Depends(get_analytic_service)
 ):
     """
     Обработчик кнопки 'Аналитика' в меню профиля.
@@ -275,8 +314,8 @@ async def profile_analytics(
 
 @router.callback_query(F.data == "profile:settings")
 async def profile_settings(
-    call: CallbackQuery,
-    user_service: UserService = Depends(get_user_service)
+        call: CallbackQuery,
+        user_service: UserService = Depends(get_user_service)
 ):
     """
     Красивый вывод настроек профиля пользователя
@@ -461,7 +500,6 @@ async def edit_business_profile(
     await call.answer()
 
 
-
 @router.callback_query(F.data == "business:edit_type")
 async def edit_business_type(call: CallbackQuery):
     """Редактирование типа бизнеса"""
@@ -481,6 +519,7 @@ async def edit_business_type(call: CallbackQuery):
         )
     )
     await call.answer()
+
 
 @router.callback_query(F.data == "profile:view_business")
 async def view_business_profile(
@@ -511,10 +550,11 @@ async def view_business_profile(
     )
     await call.answer()
 
+
 @router.callback_query(F.data.startswith("open_dialog:"))
 async def open_dialog(
-    callback: CallbackQuery,
-    conversation_service: ConversationService = Depends(get_conversation_service)
+        callback: CallbackQuery,
+        conversation_service: ConversationService = Depends(get_conversation_service)
 ):
     conversation_id = int(callback.data.split(":")[1])
     conv = await conversation_service.get_conversation(conversation_id)
@@ -531,10 +571,10 @@ async def open_dialog(
         messages.append(f"🧑 {u}\n🤖 {b}")
 
     full_text = (
-        f"🗂 <b>Диалог #{conv.id}</b>\n"
-        f"Категория: {conv.category or '—'}\n"
-        f"Создан: {conv.created_at:%d.%m %H:%M}\n\n"
-        + "\n\n".join(messages)
+            f"🗂 <b>Диалог #{conv.id}</b>\n"
+            f"Категория: {conv.category or '—'}\n"
+            f"Создан: {conv.created_at:%d.%m %H:%M}\n\n"
+            + "\n\n".join(messages)
     )
 
     await callback.message.edit_text(full_text)

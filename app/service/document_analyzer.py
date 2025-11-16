@@ -1,90 +1,121 @@
-import os
-
-import aiofiles
-import pdfplumber
-from docx import Document
-
-from app.service.llm_service import LLMService
+# app/services/document_service.py
+from typing import Dict, Any, Optional
+import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DocumentAnalyzer:
-    def __init__(self, llm: LLMService, document_repository, insight_repository):
-        self.llm = llm
-        self.document_repository = document_repository
-        self.insight_repository = insight_repository
+    def __init__(self, db):
+        self.db = db
 
-    async def _extract_from_pdf(self, file_path: str) -> str:
-        """Извлечение текста из PDF"""
-        try:
-            text = ""
-            async with aiofiles.tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = os.path.join(temp_dir, "temp.pdf")
-                async with aiofiles.open(file_path, 'rb') as source:
-                    async with aiofiles.open(temp_path, 'wb') as target:
-                        await target.write(await source.read())
+    async def create_contract(
+            self,
+            user_id: int,
+            contract_details: str
+    ) -> Dict[str, Any]:
+        """Генерация договора через ИИ"""
 
-                with pdfplumber.open(temp_path) as pdf:
-                    for page in pdf.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            text += page_text + "\n"
+        from app.service.llm_service import LLMService
+        llm_service = LLMService()
 
-            return text.strip()
-        except Exception as e:
-            raise Exception(f"Ошибка извлечения из PDF: {str(e)}")
+        prompt = f"""
+        Сгенерируй юридический договор на основе следующих деталей:
 
-    async def _extract_from_docx(self, file_path: str) -> str:
-        """Извлечение текста из DOCX"""
-        try:
-            text = ""
-            async with aiofiles.tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = os.path.join(temp_dir, "temp.docx")
-                async with aiofiles.open(file_path, 'rb') as source:
-                    async with aiofiles.open(temp_path, 'wb') as target:
-                        await target.write(await source.read())
+        {contract_details}
+
+        Верни результат в JSON:
+        {{
+            "document_type": "договор",
+            "title": "название договора",
+            "content": "полный текст договора с разделами",
+            "key_points": ["ключевой пункт 1", "ключевой пункт 2"],
+            "risks": "потенциальные риски",
+            "recommendations": "рекомендации по использованию"
+        }}
+        """
+
+        result = await llm_service.generate_json(prompt)
+
+        # Сохраняем как документ через UoW
+        async with self.db.get_uow() as uow:
+            # Предполагая, что у вас есть репозиторий документов в UoW
+            doc = await uow.documents.create(
+                user_id=user_id,
+                filename=f"Договор_{uuid.uuid4().hex[:8]}.txt",
+                file_type="generated",
+                content=result["content"],
+                size=len(result["content"])
+            )
+
+        return result
+
+    async def create_act(
+            self,
+            user_id: int,
+            act_data: str
+    ) -> Dict[str, Any]:
+        """Генерация акта через ИИ"""
+
+        from app.service.llm_service import LLMService
+        llm_service = LLMService()
+
+        prompt = f"""
+        Сгенерируй юридический акт (акт выполненных работ/акт приема-передачи) на основе данных:
+
+        {act_data}
+
+        Верни результат в JSON:
+        {{
+            "document_type": "акт",
+            "title": "название акта", 
+            "content": "полный текст акта с реквизитами",
+            "required_fields": ["поле 1", "поле 2"],
+            "checklist": "чек-лист для заполнения"
+        }}
+        """
+
+        result = await llm_service.generate_json(prompt)
+
+        async with self.db.get_uow() as uow:
+            doc = await uow.documents.create(
+                user_id=user_id,
+                filename=f"Акт_{uuid.uuid4().hex[:8]}.txt",
+                file_type="generated",
+                content=result["content"],
+                size=len(result["content"])
+            )
+
+        return result
+
+    async def check_document(
+            self,
+            user_id: int,
+            document_text: str
+    ) -> Dict[str, Any]:
+        """Проверка документа на ошибки и риски"""
+
+        from app.service.llm_service import LLMService
+        llm_service = LLMService()
+
+        prompt = f"""
+        Проверь документ на юридические ошибки, риски и дай рекомендации:
+
+        {document_text}
+
+        Верни результат в JSON:
+        {{
+            "status": "ok/risky/critical",
+            "errors": ["ошибка 1", "ошибка 2"],
+            "risks": ["риск 1", "риск 2"],
+            "recommendations": ["рекомендация 1", "рекомендация 2"],
+            "summary": "общая оценка документа"
+        }}
+        """
+
+        return await llm_service.generate_json(prompt)
 
 
-                doc = Document(temp_path)
-                for paragraph in doc.paragraphs:
-                    text += paragraph.text + "\n"
-
-            return text.strip()
-        except Exception as e:
-            raise Exception(f"Ошибка извлечения из DOCX: {str(e)}")
-
-    async def extract_text(self, file_path: str, file_type: str) -> str:
-        """Извлечение текста из файла"""
-        if file_type == 'pdf':
-            return await self._extract_from_pdf(file_path)
-        elif file_type == 'docx':
-            return await self._extract_from_docx(file_path)
-        else:
-            raise ValueError(f"Unsupported file type: {file_type}")
-
-    async def analyze(self, user_id, file_path, file_type, filename, size):
-        text = await self.extract_text(file_path, file_type)
-
-        doc = await self.document_repository.create(user_id, filename, file_type, text, size)
-
-        # Анализируем через ИИ
-        insights = await self.llm.generate_json(f"""
-            Проанализируй документ и верни JSON:
-            {{
-                "summary": "краткое содержание",
-                "risks": "выявленные риски", 
-                "recommendations": "рекомендации"
-            }}
-
-            Текст документа:
-            {text[:1500]}
-        """)
-
-        await self.insight_repository.create(
-            doc.id,
-            insights["summary"],
-            insights["risks"],
-            insights["recommendations"],
-            str(insights)
-        )
-
-        return insights
+    async def get_user_documents(self, user_id: int) -> list:
+        """Получить документы пользователя"""
+        async with self.db.get_uow() as uow:
+            return await uow.documents.get_user_documents(user_id)

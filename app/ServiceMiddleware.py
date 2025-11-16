@@ -1,7 +1,7 @@
 # app/core/di.py
 from aiogram import BaseMiddleware
 from app.database import Database
-from app.service import UserService, ConversationService, AnalyticService, WarehouseService
+from app.service import UserService, ConversationService, AnalyticService, WarehouseService, MarketingService, DocumentAnalyzer
 
 
 class ServiceMiddleware(BaseMiddleware):
@@ -18,5 +18,6 @@ class ServiceMiddleware(BaseMiddleware):
         data["conversation_service"] = ConversationService(self.db)
         data["analytic_service"] = AnalyticService(self.db)
         data["warehouse_service"] = WarehouseService(self.db)
-
+        data["marketing_idea_service"] = MarketingService(self.db)
+        data["document_service"] = DocumentAnalyzer(self.db)
         return await handler(event, data)

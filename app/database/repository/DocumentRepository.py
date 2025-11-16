@@ -21,8 +21,8 @@ class DocumentRepository:
             user_id=user_id,
             filename=filename,
             file_type=file_type,
-            content=content,
-            size=size
+            content_text=content,
+            size_bytes=size
         )
         self.session.add(doc)
         await self.session.commit()

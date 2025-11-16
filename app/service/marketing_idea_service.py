@@ -1,79 +1,216 @@
-from datetime import datetime
-from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional, Dict, Any, List
+import json
+import random
 
-from app.database.models import MarketingIdeas
-from app.service import  LLMService
+class MarketingService:
 
+    def __init__(self, db):
+        self.db = db
 
-class MarketingIdeaService:
-
-    @staticmethod
     async def generate_marketing_idea(
-            db: AsyncSession,
-            user_id: int,
-            niche: str,
-            goal: str,
-            platform: str,
-            custom_request: Optional[str] = None
-    ):
-        """
-        Генерация маркетинговых идей для малого бизнеса
-        """
+        self,
+        user_id: int,
+        niche: str,
+        goal: str,
+        platform: str,
+        custom_request: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Генерация комплексной маркетинговой идеи (заглушка)"""
 
-        prompt = MarketingIdeaService._build_prompt(
-            niche=niche,
-            goal=goal,
-            platform=platform,
-            custom_request=custom_request
-        )
-        llm_service = LLMService()
-        llm_response = await llm_service.generate(prompt)
+        # Заглушка вместо реального LLM
+        ideas_pool = [
+            {
+                "title": "Вирусный челлендж в сторис",
+                "problem": "Низкая вовлеченность аудитории",
+                "solution": "Запуск интерактивного челленджа с пользовательским контентом",
+                "action_plan": [
+                    "Создать креативный шаблон",
+                    "Запустить рекламу на целевую аудиторию",
+                    "Мотивировать участием призами",
+                    "Репостить лучшие работы"
+                ],
+                "content_ideas": [
+                    "Обзорный пост о челлендже",
+                    "Инструкция по участию",
+                    "Промежуточные результаты",
+                    "Финальный розыгрыш"
+                ],
+                "metrics": "Охват 50K, вовлеченность 15%",
+                "budget_tips": "Бюджет 5-10K рублей на призы"
+            },
+            {
+                "title": "Экспертный блог в Telegram",
+                "problem": "Отсутствие экспертного статуса",
+                "solution": "Регулярная публикация полезного контента",
+                "action_plan": [
+                    "Составить контент-план на месяц",
+                    "Создать канал/чат",
+                    "Публиковать 3 раза в неделю",
+                    "Проводить Q&A сессии"
+                ],
+                "content_ideas": [
+                    "Кейсы из практики",
+                    "Обучающие материалы",
+                    "Интервью с экспертами",
+                    "Аналитика рынка"
+                ],
+                "metrics": "Рост подписчиков 1000/мес",
+                "budget_tips": "Минимальный бюджет, время - главный ресурс"
+            }
+        ]
 
-        idea_title = llm_response.get("title")
-        idea_description = llm_response.get("description")
-        idea_examples = llm_response.get("examples")
+        response = random.choice(ideas_pool)
+        response["title"] = f"{response['title']} для {niche}"
 
-        db_item = MarketingIdeas(
-            user_id=user_id,
-            niche=niche,
-            goal=goal,
-            platform=platform,
-            custom_request=custom_request,
-            idea_title=idea_title,
-            idea_description=idea_description,
-            idea_examples=idea_examples,
-            created_at=datetime.now()
-        )
+        # Сохраняем в базу через UoW
+        async with self.db.get_uow() as uow:
+            idea = await uow.marketing_ideas.create(
+                user_id=user_id,
+                niche=niche,
+                goal=goal,
+                platform=platform,
+                custom_request=custom_request,
+                idea_title=response["title"],
+                idea_description=json.dumps(response, ensure_ascii=False, indent=2),
+                idea_examples=str(response["content_ideas"])
+            )
 
-        db.add(db_item)
-        await db.commit()
-        await db.refresh(db_item)
+        return response
 
-        return db_item
+    async def generate_social_post(
+        self,
+        user_id: int,
+        topic: str,
+        style: str = "профессиональный"
+    ) -> Dict[str, Any]:
+        """Генерация поста для соцсетей (заглушка)"""
 
-    @staticmethod
-    def _build_prompt(niche: str, goal: str, platform: str, custom_request: Optional[str]):
-        """
-        Промпт, который уходит в LLM
-        """
+        posts_pool = [
+            {
+                "headline": f"🚀 Прорыв в {topic}!",
+                "hook": "Знаете ли вы, что 90% предпринимателей делают эту ошибку?",
+                "body": f"Мы нашли решение для {topic}, которое изменит ваш подход к бизнесу. "
+                        f"После внедрения наши клиенты увеличили прибыль на 47% за первый месяц.",
+                "cta": "📞 Запишитесь на бесплатную консультацию!",
+                "hashtags": [f"#{topic}", "#бизнес", "#успех", "#советы"],
+                "visual_tips": "Используйте инфографику с цифрами и статистикой"
+            },
+            {
+                "headline": f"🎯 Секрет успеха в {topic}",
+                "hook": "Почему одни преуспевают, а другие нет?",
+                "body": f"Раскрываем проверенную методику работы с {topic}. "
+                        f"Простая пошаговая система, которая работает даже для новичков.",
+                "cta": "💬 Напишите 'Хочу узнать' в комментариях!",
+                "hashtags": [f"#{topic}", "#рост", "#развитие", "#методика"],
+                "visual_tips": "Видео-отзывы довольных клиентов"
+            }
+        ]
 
-        return f"""
-Ты — эксперт по маркетингу малого бизнеса. 
-Твоя задача — придумать мощную маркетинговую идею.
+        return random.choice(posts_pool)
 
-Данные бизнеса:
-- Ниша: {niche}
-- Цель: {goal}
-- Площадка: {platform}
+    async def generate_content_plan(
+        self,
+        user_id: int,
+        business_description: str,
+        theme: str = "общая"
+    ) -> Dict[str, Any]:
+        """Генерация контент-плана на 30 дней (заглушка)"""
 
-Дополнительный запрос:
-{custom_request or "нет"}
+        # Генерируем 30 дней контента
+        daily_posts = []
+        for day in range(1, 31):
+            themes = {
+                "educational": ["Обучение", "Советы", "Инструкции"],
+                "sales": ["Акции", "Кейсы", "Отзывы"],
+                "community": ["Опросы", "Истории", "Поздравления"],
+                "brand": ["Ценности", "Миссия", "Команда"]
+            }
 
-Сформируй результат в JSON:
-{{
-    "title": "короткое название идеи",
-    "description": "глубокое описание, как реализовать",
-    "examples": "несколько примеров постов/формулировок"
-}}
-        """
+            topic_types = themes.get(theme, ["Новости", "Советы", "Обновления"])
+            topic_type = random.choice(topic_types)
+
+            daily_posts.append({
+                "day": day,
+                "topic": f"{topic_type} по {business_description.split()[0] if business_description else 'бизнесу'}",
+                "format": random.choice(["Пост", "Сторис", "Видео", "Прямой эфир"]),
+                "goal": random.choice(["Вовлечение", "Продажи", "Трафик", "Узнаваемость"]),
+                "platform": random.choice(["Instagram", "Telegram", "VK"])
+            })
+
+        return {
+            "strategy_overview": f"Комплексный контент-план для {business_description} с фокусом на {theme} тематику",
+            "daily_posts": daily_posts,
+            "key_metrics": "Охват 100K, конверсия 3%, рост подписчиков 2000/мес",
+            "tools_recommendations": "Canva для графики, Trello для планирования, Google Analytics для аналитики"
+        }
+
+    async def generate_business_ideas(
+        self,
+        user_id: int,
+        interests: str,
+        budget: str = "не указан"
+    ) -> Dict[str, Any]:
+        """Генерация бизнес-идей (заглушка)"""
+
+        ideas_pool = [
+            {
+                "title": "Онлайн-курсы по вашей теме",
+                "description": f"Создание образовательных продуктов по {interests}",
+                "investment": "10-50K рублей",
+                "profit_potential": "50-200K рублей/мес",
+                "steps": [
+                    "Создать программу курса",
+                    "Записать видеоуроки",
+                    "Настроить рекламу",
+                    "Запустить продажи"
+                ],
+                "risks": "Конкуренция, необходимость экспертизы"
+            },
+            {
+                "title": "Telegram-бот для автоматизации",
+                "description": f"Разработка бота для решения задач в {interests}",
+                "investment": "5-20K рублей",
+                "profit_potential": "30-100K рублей/мес",
+                "steps": [
+                    "Проанализировать потребности",
+                    "Разработать функционал",
+                    "Протестировать с пользователями",
+                    "Запустить монетизацию"
+                ],
+                "risks": "Технические сложности, поддержка"
+            }
+        ]
+
+        return {
+            "ideas": ideas_pool,
+            "market_trends": "Растет спрос на онлайн-образование и автоматизацию",
+            "success_tips": "Начните с MVP, тестируйте гипотезы, собирайте обратную связь"
+        }
+
+    async def get_user_marketing_history(
+        self,
+        user_id: int,
+        limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """Получить историю маркетинговых идей пользователя"""
+        async with self.db.get_uow() as uow:
+            ideas = await uow.marketing_ideas.get_by_user_id(user_id, limit)
+            return [
+                {
+                    "id": idea.id,
+                    "title": idea.idea_title,
+                    "niche": idea.niche,
+                    "goal": idea.goal,
+                    "platform": idea.platform,
+                    "created_at": idea.created_at
+                }
+                for idea in ideas
+            ]
+
+    async def get_marketing_statistics(
+        self,
+        user_id: int
+    ) -> Dict[str, Any]:
+        """Получить статистику по маркетингу"""
+        async with self.db.get_uow() as uow:
+            return await uow.marketing_ideas.get_user_statistics(user_id)
